@@ -34,6 +34,16 @@ const player = new Sprite({
     c: c
 })
 
+const sheep = new Sprite({
+    position: { x: player.position.x + 250, y: player.position.y + 600 },
+    image: '../../images/sheep.png',
+    frames: 4,
+    directions: 5,
+    margins: { top: 12, bottom: 12, left: 4, right: 4},
+    speed: player.speed / 2,
+    c: c
+})
+
 const boundariesMatrix = [];
 for (let i = 0; i < boundariesMap.length; i += 70) {
     const row = boundariesMap.slice(i, 70 + i);
@@ -56,7 +66,70 @@ boundariesMatrix.forEach((row, i) => {
     })
 })
 
-const movables = [background, foreground, ...boundaries];
+const movables = [background, foreground, sheep, ...boundaries];
+
+function handleBarrierCollision (key, distance) {
+    // Iterate through boundaries
+    for (let i = 0; i < boundaries.length; i++) {
+        // Get a deep copy of the boundary object
+        const b = JSON.parse(JSON.stringify(boundaries[i]));
+        // Get the position of the boundary if the player moves in this direction
+        b.position[key.axis] += distance * -1;
+        // Turn this copy into a boundary object
+        const boundary = new Boundary({ position: { x: b.position.x, y: b.position.y }, c})
+        // Determine if the player collides with this boundary
+        if (player.isColliding(boundary)) {
+            // If it is colliding with a barrier, prevent the player from moving
+            player.stopMoving();
+            // No need to check other barriers... break out of the loop
+            break;
+        }
+    }
+}
+
+function handleSheepCollision (key, distance) {
+    if (player.detectionRadius.isColliding(sheep.detectionRadius)) {
+        sheep.moving = true;
+        sheep.direction = key.facing;
+        sheep.position[key.axis] += distance;
+
+        if (player.isColliding(sheep)) {
+            player.stopMoving();
+        }
+    }
+    else {
+        sheep.stopMoving();
+    }
+}
+
+function handleMovement () {
+    player.moving = false;
+    // Iterate through all movement keys
+    for (const k in keyboard.keys) {
+        // Get reference to the current key object
+        const key = keyboard.keys[k];
+        // If the key is not pressed or the last key is not this one, go next
+        if (!key.pressed || keyboard.lastKey != k) continue;
+        // Else if it is, set player moving to true
+        player.moving = true;
+        // Get the distance to change the position by
+        const distance = player.speed * key.direction;
+        // Handle collision with barriers
+        handleBarrierCollision(key, distance);
+        // If the player is not moving, go next...
+        if (!player.moving) continue;
+        // Handle collision with sheep
+        handleSheepCollision(key, sheep.speed * key.direction);
+        // Set the direction the player is facing
+        player.direction = key.facing;
+        // Move all the movable objects on opposite direction of player
+        movables.forEach(m => { m.position[key.axis] += distance * -1 })
+    }
+
+    if (!player.moving) {
+        player.stopMoving();
+    }
+}
 
 function animate() {
     window.requestAnimationFrame(animate);
@@ -67,70 +140,14 @@ function animate() {
     // Draw the player
     player.draw();
 
+    // Draw the sheep
+    sheep.draw();
+
     // Draw the foreground
     foreground.draw();
 
     // Check for movement
-    player.moving = true;
-    if (keyboard.keys.w.pressed && keyboard.lastKey == 'w') {
-        for (let i = 0; i < boundaries.length; i++) {
-            const b = boundaries[i];
-            const copy = new Boundary({ position: { x: b.position.x, y: b.position.y + player.speed }, c: c});
-            if (player.isColliding(copy)) {
-                player.stopMoving();
-                break;
-            }
-        }
-        if (player.moving) {
-            player.direction = 1;
-            movables.forEach(m => {m.position.y += player.speed})
-        }
-    }
-    else if (keyboard.keys.a.pressed && keyboard.lastKey == 'a') {
-        for (let i = 0; i < boundaries.length; i++) {
-            const b = boundaries[i];
-            const copy = new Boundary({ position: { x: b.position.x + player.speed, y: b.position.y }, c: c});
-            if (player.isColliding(copy)) {
-                player.stopMoving();
-                break;
-            }
-        }
-        if (player.moving) {
-            player.direction = 3;
-            movables.forEach(m => {m.position.x += player.speed})
-        }
-    }
-    else if (keyboard.keys.s.pressed && keyboard.lastKey == 's') {
-        for (let i = 0; i < boundaries.length; i++) {
-            const b = boundaries[i];
-            const copy = new Boundary({ position: { x: b.position.x, y: b.position.y - player.speed }, c: c});
-            if (player.isColliding(copy)) {
-                player.stopMoving();
-                break;
-            }
-        }
-        if (player.moving) {
-            player.direction = 0;
-            movables.forEach(m => {m.position.y -= player.speed})
-        }
-    }
-    else if (keyboard.keys.d.pressed && keyboard.lastKey == 'd') {
-        for (let i = 0; i < boundaries.length; i++) {
-            const b = boundaries[i];
-            const copy = new Boundary({ position: { x: b.position.x - player.speed, y: b.position.y }, c: c});
-            if (player.isColliding(copy)) {
-                player.stopMoving();
-                break;
-            }
-        }
-        if (player.moving) {
-            player.direction = 2;
-            movables.forEach(m => {m.position.x -= player.speed})
-        }
-    }
-    else {
-        player.stopMoving();
-    }
+    handleMovement();
 }
 
 window.addEventListener('keydown', (e) => { keyboard.handleKeyDown(e) })

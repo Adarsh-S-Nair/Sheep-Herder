@@ -2,7 +2,12 @@ export default class Keyboard {
 
     constructor (props) {
         // Instantiate all the movement keys
-        this.keys = { w: {}, a: {}, s: {}, d: {}}
+        this.keys = {
+            w: { axis: 'y', direction: -1, facing: 1 },
+            a: { axis: 'x', direction: -1, facing: 3 },
+            s: { axis: 'y', direction:  1, facing: 0 },
+            d: { axis: 'x', direction:  1, facing: 2 }
+        }
         // Instantiate a key stack array
         this.keyStack = [];
     }

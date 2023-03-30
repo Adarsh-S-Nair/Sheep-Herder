@@ -15,7 +15,8 @@ export default class Sprite {
         this.speed = props.speed ? props.speed : 0;
         this.moving = false;
         this.direction = 0;
-        this.c = props.c
+        this.c = props.c;
+        this.detectionRadius = new DetectionRadius(this, this.c);
     }
 
     get top()       { return this.position.y }
@@ -36,6 +37,8 @@ export default class Sprite {
             this.height
         );
 
+        // this.detectionRadius.draw();
+
         if (!this.moving) return;
 
         if (this.frames > 1) this.elapsedFrames++;
@@ -48,6 +51,34 @@ export default class Sprite {
     stopMoving () {
         this.moving = false;
         this.frame = 0;
+    }
+
+    isColliding (other) {
+        return (this.right >= other.left && this.left <= other.right &&
+                this.bottom >= other.top && this.top <= other.bottom)
+    }
+}
+
+class DetectionRadius {
+
+    constructor (sprite, c) {
+        this.sprite = sprite;
+        this.radius = 2 * this.sprite.width;
+        this.c = c;
+    }
+
+    get top()       { return this.sprite.position.y - this.radius + this.sprite.height / 2 }
+    get bottom()    { return this.top + this.radius * 2 }
+    get left()      { return this.sprite.position.x - this.radius + this.sprite.width / 2 }
+    get right()     { return this.left + this.radius * 2 } 
+
+    draw () {
+        this.c.strokeRect(
+            this.left,
+            this.top,
+            this.radius * 2,
+            this.radius * 2
+        )
     }
 
     isColliding (other) {
