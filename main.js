@@ -24,6 +24,15 @@ const foreground = new Sprite({
     c: c
 })
 
+const penWidth = 1200;
+const penHeight = 530;
+const pen = new Sprite({
+    position: { x: (canvas.width / 2) - (penWidth / 2) + 10, y: (canvas.height / 2) - (penHeight / 2) + 100},
+    width: penWidth,
+    height: penHeight,
+    c: c
+})
+
 const player = new Sprite({
     position: { x: canvas.width / 2, y: canvas.height / 2},
     image: '../../images/player.png',
@@ -41,6 +50,7 @@ const sheep = new Sprite({
     directions: 5,
     margins: { top: 12, bottom: 12, left: 4, right: 4},
     speed: player.speed / 2,
+    pen: pen,
     c: c
 })
 
@@ -66,7 +76,7 @@ boundariesMatrix.forEach((row, i) => {
     })
 })
 
-const movables = [background, foreground, sheep, ...boundaries];
+const movables = [background, foreground, pen, sheep, ...boundaries];
 
 function handleBarrierCollision (key, distance) {
     // Iterate through boundaries
@@ -88,13 +98,20 @@ function handleBarrierCollision (key, distance) {
 }
 
 function handleSheepCollision (key, distance) {
+    if (sheep.isInPen && !sheep.carriedBy) {
+        sheep.stopMoving();
+        return;
+    };
+
     if (player.detectionRadius.isColliding(sheep.detectionRadius)) {
         sheep.moving = true;
         sheep.direction = key.facing;
         sheep.position[key.axis] += distance;
 
+        if (player.carrying) return;
+
         if (player.isColliding(sheep)) {
-            player.stopMoving();
+            player.carry(sheep);
         }
     }
     else {
@@ -136,21 +153,17 @@ function animate() {
 
     // Draw the background
     background.draw();
-
     // Draw the player
     player.draw();
-
     // Draw the sheep
     sheep.draw();
-
     // Draw the foreground
     foreground.draw();
-
     // Check for movement
     handleMovement();
 }
 
-window.addEventListener('keydown', (e) => { keyboard.handleKeyDown(e) })
+window.addEventListener('keydown', (e) => { keyboard.handleKeyDown(e, player) })
 window.addEventListener('keyup', (e) => { keyboard.handleKeyUp(e) })
 
 animate();
