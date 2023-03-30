@@ -1,5 +1,7 @@
-import Keyboard from "./Keyboard.js";
-import Sprite from "./Sprite.js";
+import Keyboard             from "./classes/Keyboard.js";
+import Sprite               from "./classes/Sprite.js";
+import Boundary             from "./classes/Boundary.js";
+import boundariesMap        from "./data/boundaries.js";
 
 const canvas = document.querySelector('canvas');
 const c = canvas.getContext('2d');
@@ -14,8 +16,10 @@ backgroundImage.src = './images/Barn.png'
 const playerImage = new Image()
 playerImage.src = './images/player.png';
 
+const startingOffset = { x: -1160, y: -675 }
+
 const background = new Sprite({
-    position: { x: -1175, y: -650 },
+    position: { x: startingOffset.x, y: startingOffset.y },
     image: backgroundImage,
     c: c
 })
@@ -25,8 +29,34 @@ const player = new Sprite({
     image: playerImage,
     frames: 4,
     directions: 5,
+    margins: { top: 16, bottom: 16, left: 4, right: 12},
+    speed: 6,
     c: c
 })
+
+const boundariesMatrix = [];
+for (let i = 0; i < boundariesMap.length; i += 70) {
+    const row = boundariesMap.slice(i, 70 + i);
+    boundariesMatrix.push(row);
+}
+
+
+const boundaries = [];
+boundariesMatrix.forEach((row, i) => {
+    row.forEach((token, j) => {
+        // Ensure that the token is the boundary token
+        if (token != Boundary.token) return;
+        // If it is, get the position of this boundary
+        const x = j * Boundary.width + startingOffset.x;
+        const y = i * Boundary.height + startingOffset.y;
+        // Create a new boundary object at this position
+        const b = new Boundary({ position: { x: x, y: y }, c: c })
+        // Push this boundary into the boundaries array
+        boundaries.push(b);
+    })
+})
+
+const movables = [background, ...boundaries];
 
 function animate() {
     window.requestAnimationFrame(animate);
@@ -38,17 +68,50 @@ function animate() {
     player.draw();
 
     // Check for movement
+    let moving = true;
     if (keyboard.keys.w.pressed && keyboard.lastKey == 'w') {
-        background.position.y += 3;
+        for (let i = 0; i < boundaries.length; i++) {
+            const b = boundaries[i];
+            const copy = new Boundary({ position: { x: b.position.x, y: b.position.y + player.speed }, c: c});
+            if (player.isColliding(copy)) {
+                moving = false;
+                break;
+            }
+        }
+        if (moving) movables.forEach(m => {m.position.y += player.speed})
     }
     else if (keyboard.keys.a.pressed && keyboard.lastKey == 'a') {
-        background.position.x += 3;
+        for (let i = 0; i < boundaries.length; i++) {
+            const b = boundaries[i];
+            const copy = new Boundary({ position: { x: b.position.x + player.speed, y: b.position.y }, c: c});
+            if (player.isColliding(copy)) {
+                moving = false;
+                break;
+            }
+        }
+        if (moving) movables.forEach(m => {m.position.x += player.speed})
     }
     else if (keyboard.keys.s.pressed && keyboard.lastKey == 's') {
-        background.position.y -= 3;
+        for (let i = 0; i < boundaries.length; i++) {
+            const b = boundaries[i];
+            const copy = new Boundary({ position: { x: b.position.x, y: b.position.y - player.speed }, c: c});
+            if (player.isColliding(copy)) {
+                moving = false;
+                break;
+            }
+        }
+        if (moving) movables.forEach(m => {m.position.y -= player.speed})
     }
     else if (keyboard.keys.d.pressed && keyboard.lastKey == 'd') {
-        background.position.x -= 3;
+        for (let i = 0; i < boundaries.length; i++) {
+            const b = boundaries[i];
+            const copy = new Boundary({ position: { x: b.position.x - player.speed, y: b.position.y }, c: c});
+            if (player.isColliding(copy)) {
+                moving = false;
+                break;
+            }
+        }
+        if (moving) movables.forEach(m => {m.position.x -= player.speed})
     }
 }
 
