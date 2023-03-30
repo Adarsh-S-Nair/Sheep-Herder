@@ -1,14 +1,20 @@
 export default class Sprite {
     
     constructor (props) {
-        this.image = props.image;
+        this.image = new Image();
+
+        this.image.src = props.image;
         this.position = props.position;
+        this.frame = 0;
         this.frames = props.frames ? props.frames : 1;
+        this.elapsedFrames = 0;
         this.directions = props.directions ? props.directions : 1;
         this.margins = props.margins ? props.margins : { top: 0, bottom: 0, left: 0, right: 0};
         this.width = (this.image.width / this.frames) - this.margins.right;
         this.height = (this.image.height / this.directions) - this.margins.bottom;
         this.speed = props.speed ? props.speed : 0;
+        this.moving = false;
+        this.direction = 0;
         this.c = props.c
     }
 
@@ -20,8 +26,8 @@ export default class Sprite {
     draw () {
         this.c.drawImage(
             this.image, 
-            this.margins.left,
-            this.margins.top,
+            (this.frame * (this.image.width / this.frames)) + this.margins.left,
+            (this.direction * (this.image.height / this.directions)) + this.margins.top,
             this.width,
             this.height,
             this.position.x, 
@@ -29,6 +35,19 @@ export default class Sprite {
             this.width,
             this.height
         );
+
+        if (!this.moving) return;
+
+        if (this.frames > 1) this.elapsedFrames++;
+
+        if (this.elapsedFrames % 10 == 0) {
+            this.frame < this.frames - 1 ? this.frame++ : this.frame = 0;
+        }
+    }
+
+    stopMoving () {
+        this.moving = false;
+        this.frame = 0;
     }
 
     isColliding (other) {
